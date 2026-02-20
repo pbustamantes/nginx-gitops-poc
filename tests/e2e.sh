@@ -12,12 +12,21 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Load site definitions
+SITE_FILES=(sites/*/site.json)
+if [ ${#SITE_FILES[@]} -eq 0 ]; then
+    echo "FATAL: No site.json files found in sites/"
+    exit 1
+fi
+
 echo "Starting containers..."
 $COMPOSE up -d
 
+# Use the first site's path for readiness check
+first_path=$(jq -r '.path' "${SITE_FILES[0]}")
 echo "Waiting for Nginx to be ready..."
 timeout=30
-while ! curl -sf "$BASE_URL/site-a/" > /dev/null 2>&1; do
+while ! curl -sf "$BASE_URL$first_path" > /dev/null 2>&1; do
     sleep 1
     timeout=$((timeout - 1))
     if [ "$timeout" -le 0 ]; then
@@ -56,9 +65,15 @@ run_test() {
 
 echo ""
 echo "Running tests..."
-run_test "Site A serves correct content" "$BASE_URL/site-a/" "Welcome to Site A"
-run_test "Site B serves correct content" "$BASE_URL/site-b/" "Welcome to Site B"
-run_test "Unknown route returns 404"     "$BASE_URL/nonexistent" "404" "status"
+
+for site_file in "${SITE_FILES[@]}"; do
+    name=$(jq -r '.name' "$site_file")
+    path=$(jq -r '.path' "$site_file")
+    expected_content=$(jq -r '.expected_content' "$site_file")
+    run_test "$name serves correct content" "$BASE_URL$path" "$expected_content"
+done
+
+run_test "Unknown route returns 404" "$BASE_URL/nonexistent" "404" "status"
 
 echo ""
 echo "Results: $PASSED passed, $FAILED failed"

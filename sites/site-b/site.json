@@ -1,0 +1,5 @@
+{
+  "name": "Site B",
+  "path": "/site-b/",
+  "expected_content": "Welcome to Site B"
+}
