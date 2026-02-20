@@ -83,7 +83,14 @@ for site_file in "${SITE_FILES[@]}"; do
     name=$(jq -r '.name' "$site_file")
     path=$(jq -r '.path' "$site_file")
     expected_content=$(jq -r '.expected_content' "$site_file")
-    run_test "$name serves correct content" "$BASE_URL$path" "$expected_content"
+    enabled=$(jq -r 'if .enabled == false then "false" else "true" end' "$site_file")
+
+    if [ "$enabled" = "true" ]; then
+        run_test "$name returns 200" "$BASE_URL$path" "200" "status"
+        run_test "$name serves correct content" "$BASE_URL$path" "$expected_content"
+    else
+        run_test "$name returns 404 (disabled)" "$BASE_URL$path" "404" "status"
+    fi
 done
 
 run_test "Unknown route returns 404" "$BASE_URL/nonexistent" "404" "status"

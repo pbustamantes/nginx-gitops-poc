@@ -1,0 +1,6 @@
+{
+  "name": "Site Disabled",
+  "path": "/site-disabled/",
+  "expected_content": "Welcome to Site Disabled",
+  "enabled": false
+}
