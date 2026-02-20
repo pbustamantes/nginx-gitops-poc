@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-COMPOSE="docker compose -f docker-compose.yml -f docker-compose.test.yml"
+COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.test.yml)
 BASE_URL="http://localhost:8080"
 PASSED=0
 FAILED=0
 
+compose_up()   { "${COMPOSE[@]}" up -d; }
+compose_down() { "${COMPOSE[@]}" down --remove-orphans > /dev/null 2>&1; }
+compose_exec() { "${COMPOSE[@]}" exec "$@"; }
+
 cleanup() {
     echo "Tearing down containers..."
-    $COMPOSE down --remove-orphans > /dev/null 2>&1
+    compose_down
 }
 trap cleanup EXIT
 
@@ -20,7 +24,16 @@ if [ ${#SITE_FILES[@]} -eq 0 ]; then
 fi
 
 echo "Starting containers..."
-$COMPOSE up -d
+compose_up
+
+echo "Validating Nginx configuration..."
+if compose_exec nginx nginx -t 2>&1; then
+    echo "PASS: Nginx configuration is valid"
+    PASSED=$((PASSED + 1))
+else
+    echo "FAIL: Nginx configuration is invalid"
+    FAILED=$((FAILED + 1))
+fi
 
 # Use the first site's path for readiness check
 first_path=$(jq -r '.path' "${SITE_FILES[0]}")
