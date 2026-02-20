@@ -1,0 +1,15 @@
+services:
+  nginx:
+    depends_on:
+      - site-a
+      - site-b
+
+  site-a:
+    image: nginx:alpine
+    volumes:
+      - ./sites/site-a:/usr/share/nginx/html:ro
+
+  site-b:
+    image: nginx:alpine
+    volumes:
+      - ./sites/site-b:/usr/share/nginx/html:ro
