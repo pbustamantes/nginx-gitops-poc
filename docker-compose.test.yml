@@ -3,6 +3,7 @@ services:
     depends_on:
       - site-a
       - site-b
+      - site-c
 
   site-a:
     image: nginx:alpine
@@ -13,3 +14,8 @@ services:
     image: nginx:alpine
     volumes:
       - ./sites/site-b:/usr/share/nginx/html:ro
+
+  site-c:
+    image: nginx:alpine
+    volumes:
+      - ./sites/site-c:/usr/share/nginx/html:ro
