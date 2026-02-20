@@ -14,11 +14,11 @@ A Docker-based Nginx reverse proxy with path-based routing to independent site c
 bash tests/e2e.sh
 ```
 
-This starts all containers, runs the tests, and tears everything down automatically.
+This builds the nginx image, starts all containers, runs the tests, and tears everything down automatically.
 
 ## How It Works
 
-An Nginx reverse proxy listens on port **8080** and routes requests by path (`/site-a/`, `/site-b/`, etc.) to dedicated backend containers. Each backend is its own `nginx:alpine` instance serving static HTML.
+A custom nginx Docker image (built from `nginx/Dockerfile`) acts as a reverse proxy on port **8080**, routing requests by path to dedicated backend containers. Each backend is its own `nginx:alpine` instance serving static HTML.
 
 ```
 Client → :8080/site-a/ → [nginx proxy] → [site-a container]
@@ -27,22 +27,22 @@ Client → :8080/site-a/ → [nginx proxy] → [site-a container]
               /*                        → 404
 ```
 
-### Nginx Configuration
+### Nginx Image
 
-Follows the `sites-available`/`sites-enabled` convention:
+The proxy is built from `nginx/Dockerfile`, which embeds all configuration into the image:
 
+- **`nginx/nginx.conf`** — Includes all enabled sites into a single server block
 - **`nginx/sites-available/`** — One file per site containing a `location` block
 - **`nginx/sites-enabled/`** — Symlinks to active configs
-- **`nginx/nginx.conf`** — Includes all enabled sites into a single server block
 
-Disable a site by removing its symlink from `sites-enabled/`.
+Disable a site by removing its symlink from `sites-enabled/` and rebuilding the image.
 
 ### Docker Compose
 
 Split into two files:
 
-- **`docker-compose.yml`** — The Nginx reverse proxy (production-like)
-- **`docker-compose.test.yml`** — Sample site backends for testing, merged via `-f` flags
+- **`docker-compose.yml`** — Builds and runs the nginx reverse proxy
+- **`docker-compose.test.yml`** — Adds sample site backends for testing, merged via `-f` flags
 
 ### E2E Tests
 
@@ -55,6 +55,12 @@ The test script (`tests/e2e.sh`) discovers sites dynamically by reading `sites/*
   "expected_content": "Welcome to Site A"
 }
 ```
+
+Tests include:
+- **Config validation** — `nginx -t` inside the container
+- **Status checks** — enabled sites return HTTP 200
+- **Content checks** — response body contains expected content
+- **Negative tests** — disabled sites (with `"enabled": false`) return HTTP 404
 
 No test code changes are needed when adding a new site.
 
@@ -75,3 +81,7 @@ No test code changes are needed when adding a new site.
 3. Add the backend service in `docker-compose.test.yml` and include it in nginx's `depends_on`
 
 4. Run `bash tests/e2e.sh` — the new site is picked up automatically
+
+## CI
+
+GitHub Actions runs the E2E test suite on every push and pull request to `main`. The workflow builds the nginx image first, then executes the tests.
