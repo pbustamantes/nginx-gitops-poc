@@ -11,4 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: bash tests/e2e.sh
+      - name: Build nginx image
+        run: docker compose build
+      - name: Run E2E tests
+        run: bash tests/e2e.sh

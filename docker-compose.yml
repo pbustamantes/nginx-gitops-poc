@@ -1,9 +1,5 @@
 services:
   nginx:
-    image: nginx:alpine
+    build: ./nginx
     ports:
       - "8080:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/sites-available:/etc/nginx/sites-available:ro
-      - ./nginx/sites-enabled:/etc/nginx/sites-enabled:ro
